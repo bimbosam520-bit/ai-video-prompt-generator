@@ -1,0 +1,10 @@
+import express from 'express';
+import OpenAI from 'openai';
+import path from 'path';
+import {fileURLToPath} from 'url';
+const app=express(),__filename=fileURLToPath(import.meta.url),__dirname=path.dirname(__filename);
+app.use(express.json({limit:'1mb'})); app.use(express.static(path.join(__dirname,'public')));
+const SYSTEM=`You are an expert cinematic AI video prompt engineer. Transform the structured brief into a production-ready video prompt. Return JSON with exactly indonesia and english strings. Indonesian is detailed and editable. English is the final polished prompt. Keep the exact spoken sentence supplied by the user unchanged in both outputs; never translate or paraphrase it. Respect all selected fields and do not invent a different subject, product, logo, clothing, location, or dialogue. Expand camera direction, continuity, realistic motion, composition, lens/framing, lighting, environment, timing and visual detail. Avoid contradictions.`;
+app.post('/api/generate',async(req,res)=>{try{if(!process.env.OPENAI_API_KEY)return res.status(500).json({error:'OPENAI_API_KEY belum diatur.'});const c=new OpenAI({apiKey:process.env.OPENAI_API_KEY});const r=await c.responses.create({model:process.env.OPENAI_MODEL||'gpt-5.6',instructions:SYSTEM,input:JSON.stringify(req.body),text:{format:{type:'json_schema',name:'video_prompt',strict:true,schema:{type:'object',additionalProperties:false,properties:{indonesia:{type:'string'},english:{type:'string'}},required:['indonesia','english']}}}});res.json(JSON.parse(r.output_text));}catch(e){res.status(500).json({error:e.message||'Gagal membuat prompt.'})}});
+app.get('/api/health',(q,s)=>s.json({ok:true})); app.get('*',(q,s)=>s.sendFile(path.join(__dirname,'public','index.html')));
+app.listen(process.env.PORT||3000,()=>console.log('AI Video Prompt Generator running'));
